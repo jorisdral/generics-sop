@@ -28,6 +28,7 @@ import ExampleFunctions
 
 import Test.Tasty
 import Data.Typeable
+import GHC.Generics as GHC
 import GHC.IO (unsafePerformIO)
 
 test :: (NoThunks a, Typeable a) => String -> a -> String
@@ -35,20 +36,22 @@ test label x = "unsafeNoThunks (" <> label <> ") = " <> show (unsafeNoThunks x)
 
 main :: IO ()
 main = do
-    (applyFun -> thunkify) <- generate $ arbitrary @(Fun Int Int)
+    -- (applyFun -> thunkify) <- generate $ arbitrary @(Fun Int Int)
     mapM_ putStrLn [
         test "Wrap 1            :: Wrap GenericsSOP Int" (Wrap 1            :: Wrap GenericsSOP Int)
       , test "Wrap 1            :: Wrap StagedSOP   Int" (Wrap 1            :: Wrap StagedSOP   Int)
+      , test "Wrap 1            :: Wrap Manual      Int" (Wrap 1            :: Wrap Manual      Int)
       , test "Wrap (thunkify 1) :: Wrap GenericsSOP Int" (Wrap (thunkify 1) :: Wrap GenericsSOP Int)
       , test "Wrap (thunkify 1) :: Wrap StagedSOP   Int" (Wrap (thunkify 1) :: Wrap StagedSOP   Int)
+      , test "Wrap (thunkify 1) :: Wrap Manual      Int" (Wrap (thunkify 1) :: Wrap Manual      Int)
       ]
 
--- {-# NOINLINE thunkify #-}
--- thunkify :: a -> a
--- thunkify x = unsafePerformIO (pure $ go 10 x) -- $ go 10
---   where
---     go 0 x = x
---     go n x = go (n-1) x
+{-# NOINLINE thunkify #-}
+thunkify :: a -> a
+thunkify x = go 10 x -- $ go 10
+  where
+    go 0 x = if ack 3 3 > 0 then x else x
+    go n x = go (n-1) (if ack 3 3 > 0 then x else x)
 
 
 -- | Ackermann (anything that ghc won't just optimize away..)
@@ -76,7 +79,5 @@ instance NoThunks a => NoThunks (Wrap StagedSOP a) where
       in
         $$(sgwNoThunks' (allC [|| c ||]))
 
-genWithoutThunks :: (Arbitrary a, NFData a) => Gen a
-genWithoutThunks = force <$> arbitrary
-
-
+instance NoThunks a => NoThunks (Wrap Manual a) where
+  wNoThunks ctxt (Wrap a) = noThunks ("Wrap" : ctxt) a

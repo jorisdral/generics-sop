@@ -13,7 +13,9 @@ allow-newer:
   cborg:ghc-prim,
   cborg:bytestring,
   cborg:deepseq,
-  cborg:text
+  cborg:text,
+  nothunks:bytestring,
+  nothunks:text
 
 -- repository head.hackage.ghc.haskell.org
 --    url: https://ghc.gitlab.haskell.org/head.hackage/

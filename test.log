@@ -1,0 +1,38 @@
+test/Test.hs:77:11-41: Splicing expression
+    sgwNoThunks' (allC [|| c_a8Zl ||])
+  ======>
+    \ ctxt_abPm x_abPn
+      -> case x_abPn of
+           Wrap y_abPo
+             -> (withDict
+                   (case c_a8Zl of CWrap x_abPp -> x_abPp)
+                   (noThunks
+                      (updctxt ctxt_abPm (case c_a8Zl of CWrap x_abPq -> x_abPq)) y_abPo)
+                   >>= maybe (pure Nothing) (pure . Just))
+test/Test.hs:68:11-41: Splicing expression
+    sgwNoThunks' (allC [|| c_a96z ||])
+  ======>
+    \ ctxt_abRI x_abRJ
+      -> case x_abRJ of
+           Leaf y_abRK
+             -> (withDict
+                   (case c_a96z of CTree x_abRL _ -> x_abRL)
+                   (noThunks
+                      (updctxt ctxt_abRI (case c_a96z of CTree x_abRM _ -> x_abRM))
+                      y_abRK)
+                   >>= maybe (pure Nothing) (pure . Just))
+           Node y_abRN y_abRO
+             -> (withDict
+                   (case c_a96z of CTree _ x_abRP -> x_abRP)
+                   (noThunks
+                      (updctxt ctxt_abRI (case c_a96z of CTree _ x_abRQ -> x_abRQ))
+                      y_abRN)
+                   >>=
+                     maybe
+                       (withDict
+                          (case c_a96z of CTree _ x_abRR -> x_abRR)
+                          (noThunks
+                             (updctxt ctxt_abRI (case c_a96z of CTree _ x_abRS -> x_abRS))
+                             y_abRO)
+                          >>= maybe (pure Nothing) (pure . Just))
+                       (pure . Just))
