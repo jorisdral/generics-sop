@@ -8,6 +8,9 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE LambdaCase #-}
 module ExampleFunctions where
 
 import Codec.CBOR.Encoding
@@ -17,6 +20,7 @@ import Control.DeepSeq
 import Data.Kind
 import Data.SOP
 import Data.SOP.Constraint (And, Top)
+import Data.Maybe
 import Data.SOP.NP
 import Data.SOP.NS
 import qualified Generics.SOP as SOP
@@ -27,6 +31,9 @@ import GHC.Generics as GHC hiding (C, (:.:))
 import Language.Haskell.TH hiding (Type)
 import Language.Haskell.TH.Syntax hiding (Type)
 import ExampleTypes
+import GHC.Exts.Heap
+import NoThunks.Class
+import GHC.IO (unsafePerformIO)
 
 sgsappend ::
   SIsProductType a xs =>
@@ -306,3 +313,36 @@ sgdecode dicts =
         tag <- decodeWord
         $$(tmp5 [|| (len, tag) ||] tmp4)
     ||]
+
+sid :: SGeneric a => CodeQ a -> CodeQ a
+sid x = sfrom x sto
+
+sid2 x = sto x
+
+
+sgwNoThunks' ::
+     forall a. SGeneric a
+  => POP (C :.: Dict NoThunks) (SDescription a)
+  -> CodeQ (Context -> a -> IO (Maybe ThunkInfo))
+sgwNoThunks' dicts = [|| \ctxt x -> $$(sgwNoThunks dicts [|| ctxt ||] [|| x ||]) ||]
+
+sgwNoThunks ::
+     forall a. SGeneric a
+  => POP (C :.: Dict NoThunks) (SDescription a)
+  -> CodeQ Context -> CodeQ a -> CodeQ (IO (Maybe ThunkInfo))
+sgwNoThunks dicts ctxt c = sfrom c $ \a ->
+    foldr (\x r -> [|| $$x >>= maybe $$r (pure . Just) ||]) [|| pure Nothing ||] (f a)
+  where
+    f :: SRep a -> [CodeQ (IO (Maybe ThunkInfo))]
+    f a = collapse_SOP $ selectWith_SOP g dicts a
+
+    g :: forall b. (C :.: Dict NoThunks) b -> C b -> K (CodeQ (IO (Maybe ThunkInfo))) b
+    g (Comp (C d)) (C x) = K [|| withDict $$d (noThunks (updctxt $$ctxt $$d) $$x) ||]
+
+updctxt :: NoThunks a => Context -> proxy a -> Context
+updctxt ctxt p = case ctxt of
+    hd : tl | hd == showTypeOf (toProxy p) -> tl
+    _otherwise                             -> ctxt
+
+toProxy :: proxy a -> Proxy a
+toProxy _ = Proxy

@@ -6,6 +6,7 @@
 {-# LANGUAGE TypeApplications #-}
 
 {-# LANGUAGE IncoherentInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -ddump-splices #-}
 -- {-# OPTIONS_GHC -ddump-simpl -dsuppress-all #-}
@@ -14,11 +15,18 @@ module Main where
 import Codec.CBOR.Encoding
 import Codec.CBOR.Decoding
 import Codec.Serialise
+import Language.Haskell.TH
 import ExampleTypes
 import ExampleFunctions
 import Gauge.Main
 import Gauge.Main.Options
 import Generics.SOP.Staged
+
+sid_foo :: Foo -> Foo
+sid_foo x = $$(sid [|| x ||])
+
+sid2_foo :: Foo -> Foo
+sid2_foo x = $$(sfrom [|| x ||] sto)
 
 genum_Ordering :: () -> [Ordering]
 genum_Ordering () = genum

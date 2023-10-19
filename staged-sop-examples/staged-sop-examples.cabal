@@ -11,6 +11,8 @@ common dependencies
     deepseq,
     sop-core ^>= 0.5,
     generics-sop ^>= 0.5,
+    ghc-heap,
+    nothunks,
     serialise,
     staged-sop,
     template-haskell,
@@ -34,3 +36,14 @@ benchmark comparison
   build-depends:
     staged-sop-examples,
     gauge
+
+test-suite test
+  import: dependencies
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Test.hs
+  build-depends:
+    staged-sop-examples,
+    nothunks,
+    tasty,
+    tasty-quickcheck

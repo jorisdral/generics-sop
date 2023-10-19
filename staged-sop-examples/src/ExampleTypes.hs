@@ -4,6 +4,8 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE FlexibleInstances #-}
 module ExampleTypes where
 
 import Control.DeepSeq
@@ -359,3 +361,24 @@ tree_large =
     (Node tree_medium (Node tree_medium tree_medium))
     (Node (Node tree_medium tree_medium) tree_medium)
 
+
+
+data Wrap (tag :: Tag) a = Wrap a
+
+deriving instance GHC.Generic (Wrap tag a)
+
+instance SGeneric (Wrap StagedSOP a) where
+  type SDescription (Wrap StagedSOP a) = '[ '[a]]
+  type Constraints c (Wrap StagedSOP a) = c a
+  newtype ConstraintsD c (Wrap StagedSOP a) = CWrap (Dict c a)
+
+  sfrom c k =
+      [||
+        case $$c of
+          Wrap a -> $$(k (SOP (Z (C [|| a ||] :* Nil))))
+      ||]
+  sto (SOP (Z (C r :* Nil))) = [|| Wrap $$r ||]
+
+  constraints = CWrap Dict
+  allC c =
+    POP $ (Comp (C [|| case $$c of CWrap d -> d ||]) :* Nil) :* Nil

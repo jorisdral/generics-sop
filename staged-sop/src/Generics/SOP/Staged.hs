@@ -49,6 +49,10 @@ mapCK op (C a) = K [|| $$op $$a ||]
 -- is necessary to ensure the limited overhead we will introduce into the generated
 -- code will be optimised away completely.
 --
+-- @
+-- \x -> $$(sfrom [|| x ||] sto) == id
+--
+-- @
 class ( SListI (SDescription a), All SListI (SDescription a)
       -- , All (All LiftT `And` AllTails (LiftTCurry a)) (SDescription a) -- needed for stoA, hiding it here for now
       ) => SGeneric a where
@@ -145,6 +149,8 @@ senumTypeToA d ns =
 -- Stuff we should actually define in sop-core
 --
 
+-- Aren't these like `hap`? Or do you mean that it should be a specialized impl?
+
 cselectWith_SOP :: forall c f g h xs . All (All c) xs => Proxy c -> (forall x . c x => f x -> g x -> h x) -> POP f xs -> SOP g xs -> SOP h xs
 cselectWith_SOP p op = hczipWith p op
 
@@ -156,4 +162,3 @@ cselectWith_NS p op = hczipWith p op
 
 selectWith_NS :: forall f g h xs . SListI xs => (forall x . f x -> g x -> h x) -> NP f xs -> NS g xs -> NS h xs
 selectWith_NS p op = hzipWith p op
-
